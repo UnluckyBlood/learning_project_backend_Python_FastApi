@@ -20,6 +20,6 @@ class Order(Base):
     product_name = Column(String(200), nullable=False)
     quantity = Column(Integer, nullable=False)
     total_price = Column(Numeric(10,2),nullable=False)
-    status = Column(String(20), nullable=False, default="На рассмотрении")
+    status = Column(String(20), nullable=False, default="pending")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

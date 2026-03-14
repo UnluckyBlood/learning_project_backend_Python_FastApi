@@ -2,10 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from sqlalchemy.exc import IntegrityError
 from app.db.session import  get_db
-from app.core.security import create_access_token, verify_password
+from app.core.security import verify_password, create_access_token, get_password_hash
 from app.core.config import settings
 from app.models.order import User
+from app.schemas.auth import UserCreate
+
 #точки для аунтификации
 router = APIRouter(prefix="/auth", tags=["authentication"])
 #чек логинг/пароль
@@ -38,3 +41,24 @@ def login(
 @router.post("/logout")
 def logout():
     return {"message": "Выход из профиля"}
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    # Проверка имени, вдруг уже есть
+    existing_user = db.query(User).filter(User.username == user_data.username).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken"
+        )
+    # Хеш пароль
+    hashed_password = get_password_hash(user_data.password)
+    new_user = User(username=user_data.username, password_hash=hashed_password)
+    db.add(new_user)
+    try:
+        db.commit()
+        db.refresh(new_user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Username already taken")
+    return {"username": new_user.username, "id": new_user.id, "created_at": new_user.created_at}
