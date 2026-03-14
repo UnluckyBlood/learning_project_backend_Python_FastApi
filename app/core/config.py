@@ -1,4 +1,6 @@
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+load_dotenv() # загрузка .env в окружение чтоб норм считать
 
 class Settings(BaseSettings):
     DB_HOST: str
