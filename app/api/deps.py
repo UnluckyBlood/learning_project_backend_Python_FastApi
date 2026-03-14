@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.order import User
 # проверка отефикации из токена
-oauth2_scheme = OAuth2PasswordBearer(rokenUrl="/auth/login") #Ожидание токена в заголовке
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login") #Ожидание токена в заголовке
 
 #декодировка токена
 def get_current_user(
