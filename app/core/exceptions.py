@@ -2,16 +2,24 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from decimal import Decimal
 
-#обработчик исключений, возвращает ошибки jsonom 
-
+def convert_decimal(obj):
+    """Рекурсивно преобразует Decimal в float/string для JSON-сериализации"""
+    if isinstance(obj, Decimal):
+        return float(obj)  # или str(obj) если нужна точность
+    if isinstance(obj, dict):
+        return {k: convert_decimal(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [convert_decimal(i) for i in obj]
+    return obj
 
 # 404 ошибка, возвращает код,сообщ,путь
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={
-            "error":{
+            "error": {
                 "code": exc.status_code,
                 "message": exc.detail,
                 "path": request.url.path
@@ -21,13 +29,16 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 # 422 ошибка, ошибка валидации, детали ошибок в сообщение
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Преобразуем ошибки для безопасной JSON-сериализации
+    errors = convert_decimal(exc.errors())
+    
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": {
                 "code": 422,
                 "message": "Ошибка валидации",
-                "details": exc.errors(),
+                "details": errors,
                 "path": request.url.path
             }
         }
@@ -35,10 +46,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 # 500 ошибка, непредвиденные исключения
 async def general_exception_handler(request: Request, exc: Exception):
+    # В реальном проекте здесь нужно логировать ошибку
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "error":{
+            "error": {
                 "code": 500,
                 "message": "Внутренняя ошибка сервера",
                 "path": request.url.path

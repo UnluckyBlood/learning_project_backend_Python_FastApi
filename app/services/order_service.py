@@ -26,6 +26,7 @@ def update_order(db: Session, order_id: int, order_update: OrderUpdate):
         setattr(db_order, key, value)
     db.commit()
     db.refresh(db_order)
+    return db_order
 # часть какую-то обновляем 
 def patch_order(db: Session, order_id: int, order_patch: OrderPatch):
     db_order = get_order(db, order_id)
